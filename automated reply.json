@@ -1,0 +1,176 @@
+{
+  "name": "automated reply",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "readStatus": "unread"
+        }
+      },
+      "id": "3faacfeb-8dc7-432e-9dbd-66888c3a1378",
+      "name": "When Email Received",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        80,
+        192
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "7QzdNxMsWka4byr5",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Read the following email carefully and write a professional business reply.\n\nSender:\n{{ $json.From }}\n\nSubject:\n{{ $json.Subject }}\n\nEmail:\n{{ $json.snippet }}\n\nWrite a complete email reply that:\nUse the sender's actual name if it is available.\nIf the sender's name is missing, use \"Dear Sir/Madam\" instead.\nNever write placeholders like [Sender's Name], [Name], or [Company].\n- Addresses the sender's request.\n- Answers questions if the required information is available.\n- If information is unavailable, politely acknowledge the request and state that the relevant team will follow up.\n- Maintains a professional and friendly tone.\n- Does not repeat the original email.\n- Returns ONLY the reply email.",
+        "options": {
+          "systemMessage": "You are a professional email assistant working on behalf of the company.\n\nYour responsibility is to read the incoming email carefully, understand the sender's intent, and generate a professional, polite, and context-aware reply.\n\nRules:\n- Read the entire email before responding.\n- Understand the sender's purpose and questions.\n- Reply in the same language used by the sender.\n- Answer only based on the information provided.\n- Never make up facts or promises.\n- If the requested information is unavailable, politely acknowledge the request and inform the sender that the appropriate team will follow up.\n- Do not repeat or summarize the original email.\n- Do not mention that you are an AI.\n- Keep the tone professional, respectful, and concise.\n- Use proper business email formatting.\n- Return ONLY the reply email.\n- End every email with:\n\nBest regards,\nNazmul Hasan"
+        }
+      },
+      "id": "25869a12-c4c5-4105-825b-f0ce7b367b1d",
+      "name": "Generate Email Reply",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        304,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $(\"When Email Received\").item.json.id }}",
+        "emailType": "text",
+        "message": "={{ $json.output }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "e52b8f5d-fc3f-48b0-9aaf-30508c12f434",
+      "name": "Send Reply",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        864,
+        192
+      ],
+      "webhookId": "bb61034a-710f-416c-b4dc-81db933eda59",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "7QzdNxMsWka4byr5",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "responsesApiEnabled": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        272,
+        384
+      ],
+      "id": "7af266d1-6bce-4fe8-934e-721aa91120b4",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "tNms57Bg4PrD8mdh",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.first().json.output;\n\nconst match = text.match(/### REPLY\\s*([\\s\\S]*)/i);\n\nreturn [\n  {\n    json: {\n      reply: match ? match[1].trim() : text\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        192
+      ],
+      "id": "a1e87c50-3979-4e09-929d-2b7918936f60",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Email Received": {
+      "main": [
+        [
+          {
+            "node": "Generate Email Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Email Reply": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Email Reply",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "0e3d248e-284d-4336-93db-a88da9b9e868",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fd64d3b5214a3a5e014df98fc1b82d4ed9947760a1df7cb5267930dffbdbb507"
+  },
+  "nodeGroups": [],
+  "id": "K0Ey7hSB9WlQ0Dck",
+  "tags": []
+}
